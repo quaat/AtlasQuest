@@ -4,7 +4,7 @@ import { useGame } from "@/store/gameStore";
 import { getContinent } from "@/data/continents";
 import { speakCountryName } from "@/lib/utils";
 import { useSettings } from "@/store/settingsStore";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export function TargetPanel() {
   const target = useGame((s) => s.targetCountry);
@@ -24,6 +24,10 @@ export function TargetPanel() {
   const canHint = hintsEnabled && (mode === "practice" || mode === "classic" || mode === "mastery");
   const showCapital = hintLevel >= 1 && canHint;
   const showFirstLetter = hintLevel >= 2 && canHint;
+
+  useEffect(() => {
+    setHintLevel(0);
+  }, [target.id]);
 
   return (
     <div className="glass-strong rounded-2xl p-4 sm:p-5 relative overflow-hidden">

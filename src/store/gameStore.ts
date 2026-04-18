@@ -82,6 +82,14 @@ export interface GameState {
 }
 
 const DEFAULT_TIMED_LIMIT_MS = 90_000;
+const ZERO_SCORE: RoundScore = {
+  total: 0,
+  base: 0,
+  speedBonus: 0,
+  accuracyBonus: 0,
+  continentBonus: 0,
+  grade: "D",
+};
 
 function roundsPoolFor(
   continent: ContinentId,
@@ -136,6 +144,7 @@ export const useGame = create<GameState>((set, get) => ({
       mode: null,
       continent: null,
       sessionId: null,
+      sessionStartedAt: null,
       sessionPool: [],
       targetCountry: null,
       wrongGuesses: [],
@@ -148,6 +157,9 @@ export const useGame = create<GameState>((set, get) => ({
       sessionBestStreak: 0,
       sessionHistory: [],
       timedStartedAt: null,
+      roundStartedAt: null,
+      roundEndedAt: null,
+      guesses: 0,
       lastRound: null,
       solved: false,
       revealed: false,
@@ -156,7 +168,7 @@ export const useGame = create<GameState>((set, get) => ({
 
   goScreen: (s) => set({ screen: s }),
 
-  selectContinent: (c) => set({ continent: c, screen: "mode-select" }),
+  selectContinent: (c) => set({ continent: c, mode: null, screen: "mode-select" }),
 
   selectMode: (m) => set({ mode: m }),
 
@@ -184,7 +196,12 @@ export const useGame = create<GameState>((set, get) => ({
       /* ignore */
     }
 
-    const sessionId = await startSession({ mode, continent });
+    let sessionId: number | null = null;
+    try {
+      sessionId = await startSession({ mode, continent });
+    } catch {
+      // Play should still work even if persistence is unavailable.
+    }
     const pool = roundsPoolFor(continent, mode, statsMap);
     const now = Date.now();
 
@@ -248,12 +265,14 @@ export const useGame = create<GameState>((set, get) => ({
     if (countryId === s.targetCountry.id) {
       const endedAt = Date.now();
       const timeMs = endedAt - (s.roundStartedAt ?? endedAt);
-      const score = scoreRound({
-        timeMs,
-        guesses,
-        solved: true,
-        continentCountryCount: s.sessionPool.length,
-      });
+      const score = s.mode === "practice"
+        ? ZERO_SCORE
+        : scoreRound({
+            timeMs,
+            guesses,
+            solved: true,
+            continentCountryCount: s.sessionPool.length,
+          });
       const entry: RoundHistoryEntry = {
         targetId: s.targetCountry.id,
         targetName: s.targetCountry.name,
@@ -314,7 +333,7 @@ export const useGame = create<GameState>((set, get) => ({
         timeMs,
         guesses,
         solved: false,
-        score: { total: 0, base: 0, speedBonus: 0, accuracyBonus: 0, continentBonus: 0, grade: "D" },
+        score: ZERO_SCORE,
         endedAt,
       };
       set({
@@ -357,7 +376,7 @@ export const useGame = create<GameState>((set, get) => ({
       timeMs,
       guesses: s.guesses,
       solved: false,
-      score: { total: 0, base: 0, speedBonus: 0, accuracyBonus: 0, continentBonus: 0, grade: "D" },
+      score: ZERO_SCORE,
       endedAt,
     };
     set({

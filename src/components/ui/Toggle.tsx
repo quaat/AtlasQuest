@@ -21,6 +21,7 @@ export function Toggle({ checked, onChange, label, description, id }: Props) {
         )}
       </div>
       <button
+        type="button"
         id={id}
         role="switch"
         aria-checked={checked}
