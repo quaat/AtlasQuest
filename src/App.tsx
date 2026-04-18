@@ -12,6 +12,8 @@ import { getDb } from "@/lib/db";
 
 export default function App() {
   const screen = useGame((s) => s.screen);
+  const flushHomeReset = useGame((s) => s.flushHomeReset);
+  const viewportLocked = screen === "game";
 
   useEffect(() => {
     // Warm SQLite up early so the first session insert is fast
@@ -19,15 +21,19 @@ export default function App() {
   }, []);
 
   return (
-    <div className="relative min-h-screen bg-ink-950 text-mist-50">
-      <AnimatePresence mode="wait">
+    <div
+      className={`relative bg-ink-950 text-mist-50 ${
+        viewportLocked ? "h-[100dvh] overflow-hidden" : "min-h-screen"
+      }`}
+    >
+      <AnimatePresence mode="wait" onExitComplete={flushHomeReset}>
         <motion.div
           key={screen}
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
-          className="min-h-screen"
+          className={viewportLocked ? "h-full min-h-0" : "min-h-screen"}
         >
           {screen === "home" && <HomeScreen />}
           {screen === "continent-select" && <ContinentSelectScreen />}

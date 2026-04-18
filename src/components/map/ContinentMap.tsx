@@ -8,10 +8,16 @@ import {
 } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Minus, Plus, Maximize2, Crosshair } from "lucide-react";
-import { buildContinentMap, clampViewport, zoomViewport } from "@/lib/geo";
+import {
+  buildContinentMap,
+  clampViewport,
+  getSmallCountryHitStrokeWidth,
+  isSmallCountryFeature,
+  zoomViewport,
+} from "@/lib/geo";
 import type { ContinentMapData } from "@/lib/geo";
 import type { ContinentId } from "@/data/continents";
-import { getContinent } from "@/data/continents";
+import { getContinent, resolveContinentProjection } from "@/data/continents";
 import { useWorldTopology } from "./useWorldTopology";
 import { cn } from "@/lib/utils";
 import { useSettings } from "@/store/settingsStore";
@@ -56,17 +62,21 @@ export const ContinentMap = memo(function ContinentMap({
   className,
 }: Props) {
   const { topology, loading, error } = useWorldTopology();
-  const { showLabels } = useSettings();
+  const { showLabels, mapProjectionMode } = useSettings();
   const svgRef = useRef<SVGSVGElement>(null);
   const [internalHover, setInternalHover] = useState<string | null>(null);
   const hoveredId = hoveredIdProp ?? internalHover;
 
   const meta = useMemo(() => getContinent(continent), [continent]);
+  const projectionSpec = useMemo(
+    () => resolveContinentProjection(meta, mapProjectionMode),
+    [meta, mapProjectionMode],
+  );
 
   const map: ContinentMapData | null = useMemo(() => {
     if (!topology) return null;
-    return buildContinentMap(topology, continent, BASE_W, BASE_H, meta.projection);
-  }, [topology, continent, meta.projection]);
+    return buildContinentMap(topology, continent, BASE_W, BASE_H, projectionSpec);
+  }, [topology, continent, projectionSpec]);
 
   const [vp, setVp] = useState({ x: 0, y: 0, w: BASE_W, h: BASE_H });
   useEffect(() => {
@@ -166,6 +176,23 @@ export const ContinentMap = memo(function ContinentMap({
     dragRef.current.active = false;
   };
 
+  const orderedCountries = useMemo(
+    () =>
+      map?.countries
+        .slice()
+        .sort((a, b) => b.projectedArea - a.projectedArea) ?? [],
+    [map?.countries],
+  );
+  const smallCountryHitTargets = useMemo(() => {
+    if (!map) return [];
+    return orderedCountries
+      .filter((country) => isSmallCountryFeature(country, map.width, map.height))
+      .map((country) => ({
+        country,
+        hitStrokeWidth: getSmallCountryHitStrokeWidth(country),
+      }));
+  }, [orderedCountries, map]);
+
   if (error) {
     return (
       <div className="flex h-full items-center justify-center text-center p-8">
@@ -242,7 +269,7 @@ export const ContinentMap = memo(function ContinentMap({
         <rect x={vp.x} y={vp.y} width={vp.w} height={vp.h} fill="url(#sea-glow)" />
 
         {/* Countries */}
-        {map.countries.map((c) => {
+        {orderedCountries.map((c) => {
           const state: MapCountryState = solvedId === c.id
             ? "correct"
             : revealedId === c.id
@@ -330,6 +357,38 @@ export const ContinentMap = memo(function ContinentMap({
             />
           );
         })}
+
+        {/* Small-country interaction helpers: invisible expanded stroke hit areas.
+            Keeps visuals intact while making enclaves/microstates tappable. */}
+        {smallCountryHitTargets.map(({ country, hitStrokeWidth }) => (
+          <path
+            key={`hit-${country.id}`}
+            d={country.pathD}
+            fill="none"
+            stroke="rgba(0,0,0,0.001)"
+            strokeWidth={hitStrokeWidth}
+            vectorEffect="non-scaling-stroke"
+            pointerEvents="stroke"
+            className="cursor-pointer"
+            tabIndex={-1}
+            aria-hidden
+            onClick={(e) => {
+              if (dragRef.current.moved) return;
+              e.stopPropagation();
+              onSelect?.(country.id);
+            }}
+            onMouseEnter={() => {
+              setInternalHover(country.id);
+              onHover?.(country.id);
+            }}
+            onMouseLeave={() => {
+              if (internalHover === country.id) {
+                setInternalHover(null);
+                onHover?.(null);
+              }
+            }}
+          />
+        ))}
 
         {/* Pulse ring at target position on reveal */}
         {revealedId && (

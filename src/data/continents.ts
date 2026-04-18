@@ -8,6 +8,8 @@ export type ContinentId =
   | "south-america"
   | "oceania";
 
+export type MapProjectionMode = "auto" | "mercator" | "conicConformal";
+
 export interface ContinentMeta {
   id: ContinentId;
   name: string;
@@ -127,4 +129,45 @@ export function getContinent(id: ContinentId): ContinentMeta {
   const c = CONTINENTS.find((c) => c.id === id);
   if (!c) throw new Error(`Unknown continent: ${id}`);
   return c;
+}
+
+function clampLatitude(lat: number): number {
+  return Math.max(-80, Math.min(80, lat));
+}
+
+function fallbackConicRotate(center: [number, number]): [number, number] {
+  const [lon, lat] = center;
+  return [-lon, -clampLatitude(lat)];
+}
+
+function fallbackConicParallels(center: [number, number]): [number, number] {
+  const lat = clampLatitude(center[1]);
+  const spread = 18;
+  const p1 = clampLatitude(lat - spread);
+  const p2 = clampLatitude(lat + spread);
+  return p1 < p2 ? [p1, p2] : [p2, p1];
+}
+
+export function resolveContinentProjection(
+  meta: ContinentMeta,
+  mode: MapProjectionMode,
+): ProjectionSpec {
+  const base = meta.projection;
+  if (mode === "auto") return base;
+
+  if (mode === "mercator") {
+    return {
+      kind: "mercator",
+      center: base.center,
+      scaleHint: base.scaleHint,
+    };
+  }
+
+  return {
+    kind: "conicConformal",
+    center: base.center,
+    rotate: base.rotate ?? fallbackConicRotate(base.center),
+    parallels: base.parallels ?? fallbackConicParallels(base.center),
+    scaleHint: base.scaleHint,
+  };
 }

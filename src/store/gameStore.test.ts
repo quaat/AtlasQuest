@@ -51,6 +51,31 @@ describe("gameStore", () => {
     expect(s.screen).toBe("mode-select");
   });
 
+  it("keeps game state intact until home reset is flushed", () => {
+    useGame.setState((state) => ({
+      ...state,
+      screen: "game",
+      mode: "classic",
+      continent: "europe",
+      sessionScore: 1234,
+      homeResetPending: false,
+    }));
+
+    useGame.getState().exitToHome();
+    let s = useGame.getState();
+    expect(s.screen).toBe("home");
+    expect(s.homeResetPending).toBe(true);
+    expect(s.mode).toBe("classic");
+    expect(s.continent).toBe("europe");
+
+    useGame.getState().flushHomeReset();
+    s = useGame.getState();
+    expect(s.homeResetPending).toBe(false);
+    expect(s.mode).toBeNull();
+    expect(s.continent).toBeNull();
+    expect(s.sessionScore).toBe(0);
+  });
+
   it("starts timed sessions and initializes a target", async () => {
     vi.spyOn(Date, "now").mockReturnValue(1_000_000);
     const store = useGame.getState();

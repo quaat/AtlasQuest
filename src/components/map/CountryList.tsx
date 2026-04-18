@@ -42,7 +42,7 @@ export function CountryList({
   }, [q, list]);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full min-h-0 min-w-0 flex-col">
       <div className="flex items-center justify-between px-3 pt-3 pb-2 gap-2">
         <div className="text-[11px] uppercase tracking-[0.15em] text-mist-400">
           Countries <span className="text-mist-500">· {list.length}</span>
@@ -69,7 +69,7 @@ export function CountryList({
           </button>
         )}
       </div>
-      <ul className="overflow-y-auto px-2 py-2 mt-1 flex-1">
+      <ul className="mt-1 flex-1 min-h-0 overflow-y-auto px-2 py-2">
         {filtered.map((c) => {
           const isWrong = wrongIds.includes(c.id);
           const isCorrect = correctId === c.id;

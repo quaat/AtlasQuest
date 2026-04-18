@@ -13,7 +13,7 @@ export function GameHUD() {
   const roundStart = useGame((s) => s.roundStartedAt);
   const timedStart = useGame((s) => s.timedStartedAt);
   const timedLimit = useGame((s) => s.timedLimitMs);
-  const goHome = useGame((s) => s.goHome);
+  const exitToHome = useGame((s) => s.exitToHome);
   const endSessionNow = useGame((s) => s.endSessionNow);
   const tickTimer = useGame((s) => s.tickTimer);
   const streak = useGame((s) => s.sessionStreak);
@@ -47,8 +47,8 @@ export function GameHUD() {
   const accuracy = roundsPlayed > 0 ? Math.round((sessionRoundsWon / roundsPlayed) * 100) : null;
 
   return (
-    <div className="glass rounded-2xl px-3 py-2 sm:px-4 sm:py-2.5 flex items-center gap-2 sm:gap-3">
-      <Button variant="ghost" size="sm" onClick={goHome} iconLeft={<ArrowLeft size={14} />}>
+    <div className="glass min-w-0 overflow-hidden rounded-2xl px-3 py-2 sm:px-4 sm:py-2.5 flex flex-wrap items-center gap-2 sm:gap-3">
+      <Button variant="ghost" size="sm" onClick={exitToHome} iconLeft={<ArrowLeft size={14} />}>
         Exit
       </Button>
       <div className="hidden sm:flex items-center gap-2 pl-2">
@@ -63,7 +63,7 @@ export function GameHUD() {
 
       <div className="flex-1" />
 
-      <div className="flex items-center gap-3 sm:gap-4">
+      <div className="flex min-w-0 flex-wrap items-center justify-end gap-3 sm:gap-4">
         <Stat label="Score" value={score.toLocaleString()} tint="#22D3EE" />
         {mode === "streak" && (
           <Stat label="Streak" value={`${streak}🔥`} tint="#FB7185" />

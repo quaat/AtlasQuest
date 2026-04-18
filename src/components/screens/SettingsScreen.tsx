@@ -1,11 +1,31 @@
-import { ArrowLeft, Volume2, Vibrate, Tag, Lightbulb, Zap, Database } from "lucide-react";
+import { ArrowLeft, Volume2, Vibrate, Tag, Lightbulb, Zap, Database, Map } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardTitle } from "@/components/ui/Card";
 import { Toggle } from "@/components/ui/Toggle";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useGame } from "@/store/gameStore";
 import { useSettings } from "@/store/settingsStore";
 import { resetDb } from "@/lib/db";
 import { useState } from "react";
+import type { MapProjectionMode } from "@/data/continents";
+
+const projectionOptions: { value: MapProjectionMode; label: string; hint: string }[] = [
+  {
+    value: "auto",
+    label: "Auto",
+    hint: "Use each continent's default best-fit projection.",
+  },
+  {
+    value: "mercator",
+    label: "Mercator",
+    hint: "Force Mercator projection across all continents.",
+  },
+  {
+    value: "conicConformal",
+    label: "Conic",
+    hint: "Force Conic Conformal projection across all continents.",
+  },
+];
 
 export function SettingsScreen() {
   const goHome = useGame((s) => s.goHome);
@@ -26,6 +46,26 @@ export function SettingsScreen() {
         <p className="text-mist-300 mt-2">Tune the experience the way you like it.</p>
 
         <Card className="mt-6 divide-y divide-white/5">
+          <div className="py-3">
+            <div className="flex items-start gap-3">
+              <div className="h-8 w-8 rounded-lg bg-white/5 border border-white/10 grid place-items-center shrink-0">
+                <Map size={16} className="text-cyan-300" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-mist-50">Map projection</div>
+                <div className="text-xs text-mist-400 mt-0.5">
+                  Auto uses the best projection per continent. Mercator and Conic Conformal force one projection globally.
+                </div>
+                <SegmentedControl
+                  value={s.mapProjectionMode}
+                  onChange={s.setMapProjectionMode}
+                  options={projectionOptions}
+                  size="sm"
+                  className="mt-2 max-w-full"
+                />
+              </div>
+            </div>
+          </div>
           <SettingRow
             icon={<Volume2 size={16} className="text-cyan-300" />}
             label="Sound effects"

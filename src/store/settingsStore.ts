@@ -1,17 +1,20 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { setMuted } from "@/lib/audio";
+import type { MapProjectionMode } from "@/data/continents";
 
 export interface SettingsState {
   soundEnabled: boolean;
   hapticEnabled: boolean;
   theme: "aurora" | "slate";
+  mapProjectionMode: MapProjectionMode;
   showLabels: boolean;
   reduceMotion: boolean;
   hintsEnabled: boolean;
   setSound: (v: boolean) => void;
   setHaptic: (v: boolean) => void;
   setTheme: (v: SettingsState["theme"]) => void;
+  setMapProjectionMode: (v: MapProjectionMode) => void;
   setShowLabels: (v: boolean) => void;
   setReduceMotion: (v: boolean) => void;
   setHintsEnabled: (v: boolean) => void;
@@ -23,6 +26,7 @@ export const useSettings = create<SettingsState>()(
       soundEnabled: true,
       hapticEnabled: true,
       theme: "aurora",
+      mapProjectionMode: "auto",
       showLabels: true,
       reduceMotion: false,
       hintsEnabled: true,
@@ -32,6 +36,7 @@ export const useSettings = create<SettingsState>()(
       },
       setHaptic: (v) => set({ hapticEnabled: v }),
       setTheme: (v) => set({ theme: v }),
+      setMapProjectionMode: (v) => set({ mapProjectionMode: v }),
       setShowLabels: (v) => set({ showLabels: v }),
       setReduceMotion: (v) => set({ reduceMotion: v }),
       setHintsEnabled: (v) => set({ hintsEnabled: v }),

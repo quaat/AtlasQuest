@@ -38,6 +38,7 @@ export interface GameState {
   screen: Screen;
   mode: GameMode | null;
   continent: ContinentId | null;
+  homeResetPending: boolean;
 
   sessionId: number | null;
   sessionStartedAt: number | null;
@@ -68,6 +69,8 @@ export interface GameState {
 
   // Actions
   goHome: () => void;
+  exitToHome: () => void;
+  flushHomeReset: () => void;
   goScreen: (s: Screen) => void;
   selectContinent: (c: ContinentId) => void;
   selectMode: (m: GameMode) => void;
@@ -112,6 +115,7 @@ export const useGame = create<GameState>((set, get) => ({
   screen: "home",
   mode: null,
   continent: null,
+  homeResetPending: false,
 
   sessionId: null,
   sessionStartedAt: null,
@@ -143,6 +147,41 @@ export const useGame = create<GameState>((set, get) => ({
       screen: "home",
       mode: null,
       continent: null,
+      homeResetPending: false,
+      sessionId: null,
+      sessionStartedAt: null,
+      sessionPool: [],
+      targetCountry: null,
+      wrongGuesses: [],
+      sessionRoundsPlayed: 0,
+      sessionRoundsWon: 0,
+      sessionTotalTime: 0,
+      sessionTotalGuesses: 0,
+      sessionScore: 0,
+      sessionStreak: 0,
+      sessionBestStreak: 0,
+      sessionHistory: [],
+      timedStartedAt: null,
+      roundStartedAt: null,
+      roundEndedAt: null,
+      guesses: 0,
+      lastRound: null,
+      solved: false,
+      revealed: false,
+    });
+  },
+
+  exitToHome: () => {
+    set({ screen: "home", homeResetPending: true });
+  },
+
+  flushHomeReset: () => {
+    if (!get().homeResetPending) return;
+    set({
+      screen: "home",
+      mode: null,
+      continent: null,
+      homeResetPending: false,
       sessionId: null,
       sessionStartedAt: null,
       sessionPool: [],

@@ -63,7 +63,7 @@ export function GameScreen() {
   const revealedId = revealed ? target?.id ?? null : null;
 
   return (
-    <div className="relative min-h-screen flex flex-col px-3 sm:px-5 py-3 sm:py-5">
+    <div className="relative flex h-full min-h-0 flex-col overflow-hidden px-3 py-3 sm:px-5 sm:py-5">
       <div className="ambient pointer-events-none" />
       <Confetti run={confetti} onDone={() => setConfetti(false)} />
 
@@ -71,12 +71,12 @@ export function GameScreen() {
         <GameHUD />
       </div>
 
-      <div className="relative z-10 mt-3 sm:mt-4 grid gap-3 sm:gap-4 flex-1 grid-cols-1 lg:grid-cols-[1fr_320px]">
-        <div className="flex flex-col gap-3 sm:gap-4 min-h-0">
+      <div className="relative z-10 mt-3 sm:mt-4 flex-1 min-h-0 min-w-0 grid gap-3 sm:gap-4 grid-cols-1 grid-rows-[minmax(0,1fr)_minmax(0,220px)] lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)] lg:grid-rows-[minmax(0,1fr)]">
+        <div className="flex min-h-0 min-w-0 flex-col gap-3 sm:gap-4 overflow-y-auto pr-1">
           <TargetPanel />
           <motion.div
             layout
-            className="glass rounded-2xl overflow-hidden flex-1 min-h-[320px] sm:min-h-[520px] relative"
+            className="glass relative flex-1 min-h-[220px] sm:min-h-[260px] overflow-hidden rounded-2xl"
           >
             <ContinentMap
               continent={continent}
@@ -95,7 +95,7 @@ export function GameScreen() {
           <RoundResult onNext={nextRound} />
         </div>
 
-        <aside className="glass rounded-2xl overflow-hidden h-full min-h-[240px] flex flex-col lg:max-h-[calc(100vh-120px)]">
+        <aside className="glass min-h-0 min-w-0 h-full overflow-hidden rounded-2xl flex flex-col">
           <CountryList
             continent={continent}
             wrongIds={wrongGuesses}
