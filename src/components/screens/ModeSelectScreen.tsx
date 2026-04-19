@@ -6,6 +6,7 @@ import {
   BookOpen,
   Target,
   Rocket,
+  Compass,
 } from "lucide-react";
 import { useGame, type GameMode } from "@/store/gameStore";
 import { getContinent } from "@/data/continents";
@@ -60,6 +61,14 @@ const MODES: ModeInfo[] = [
     icon: <Target size={18} />,
     body: "Prioritizes countries you've struggled with most. Smart spaced repetition.",
     accent: "#34D399",
+  },
+  {
+    id: "discovery",
+    name: "Discovery",
+    tagline: "Study mode · free exploration",
+    icon: <Compass size={18} />,
+    body: "Explore the full continent, sync map and list highlights, and inspect country details without scoring pressure.",
+    accent: "#60A5FA",
   },
 ];
 
@@ -158,7 +167,7 @@ export function ModeSelectScreen() {
             disabled={!mode}
             onClick={() => startSession()}
           >
-            Begin {meta.name} →
+            {mode === "discovery" ? `Start studying ${meta.name} →` : `Begin ${meta.name} →`}
           </Button>
         </div>
       </div>

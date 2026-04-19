@@ -96,6 +96,25 @@ describe("gameStore", () => {
     expect(s.targetCountry).not.toBeNull();
   });
 
+  it("starts discovery sessions without a quiz session record", async () => {
+    vi.spyOn(Date, "now").mockReturnValue(1_000_000);
+    const store = useGame.getState();
+    store.selectContinent("europe");
+    store.selectMode("discovery");
+
+    await store.startSession();
+
+    const s = useGame.getState();
+    expect(dbMocks.startSession).not.toHaveBeenCalled();
+    expect(s.screen).toBe("game");
+    expect(s.sessionId).toBeNull();
+    expect(s.sessionPool.length).toBe(COUNTRIES_BY_CONTINENT.europe.length);
+    expect(s.targetCountry).toBeNull();
+    expect(s.guesses).toBe(0);
+    expect(s.solved).toBe(false);
+    expect(s.revealed).toBe(false);
+  });
+
   it("keeps gameplay working when persistence start fails", async () => {
     dbMocks.startSession.mockRejectedValueOnce(new Error("db unavailable"));
     const store = useGame.getState();
@@ -158,6 +177,22 @@ describe("gameStore", () => {
     expect(dbMocks.recordRound).toHaveBeenCalledWith(
       expect.objectContaining({ solved: true, score: 0 }),
     );
+  });
+
+  it("ignores guesses during discovery mode", () => {
+    const target = COUNTRIES_BY_CONTINENT.europe[0];
+
+    useGame.setState((state) => ({
+      ...state,
+      mode: "discovery",
+      continent: "europe",
+      sessionPool: COUNTRIES_BY_CONTINENT.europe,
+      targetCountry: target,
+      roundStartedAt: 500,
+    }));
+
+    const result = useGame.getState().guess(target.id);
+    expect(result).toBe("ignored");
   });
 
   it("ignores repeated wrong guesses", () => {
@@ -229,6 +264,19 @@ describe("gameStore", () => {
     useGame.getState().nextRound();
 
     expect(endSessionNow).toHaveBeenCalledTimes(1);
+    expect(pickTarget).not.toHaveBeenCalled();
+  });
+
+  it("does not advance rounds in discovery mode", () => {
+    const pickTarget = vi.fn();
+
+    useGame.setState((state) => ({
+      ...state,
+      mode: "discovery",
+      pickTarget,
+    }));
+
+    useGame.getState().nextRound();
     expect(pickTarget).not.toHaveBeenCalled();
   });
 

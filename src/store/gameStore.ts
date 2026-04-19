@@ -11,7 +11,13 @@ import {
   getCountryStats,
 } from "@/lib/db";
 
-export type GameMode = "classic" | "timed" | "streak" | "practice" | "mastery";
+export type GameMode =
+  | "classic"
+  | "timed"
+  | "streak"
+  | "practice"
+  | "mastery"
+  | "discovery";
 
 export type Screen =
   | "home"
@@ -216,31 +222,37 @@ export const useGame = create<GameState>((set, get) => ({
   startSession: async () => {
     const { continent, mode } = get();
     if (!continent || !mode) return;
+    const discovery = mode === "discovery";
 
-    // load country stats to support mastery mode weighting
     let statsMap = new Map<
       string,
       { seen: number; wrongAttempts: number; correct: number }
     >();
-    try {
-      const rows = await getCountryStats();
-      for (const r of rows) {
-        statsMap.set(r.country_id, {
-          seen: r.seen,
-          wrongAttempts: r.wrong_attempts,
-          correct: r.correct,
-        });
+    if (!discovery) {
+      // load country stats to support mastery mode weighting
+      try {
+        const rows = await getCountryStats();
+        for (const r of rows) {
+          statsMap.set(r.country_id, {
+            seen: r.seen,
+            wrongAttempts: r.wrong_attempts,
+            correct: r.correct,
+          });
+        }
+      } catch {
+        /* ignore */
       }
-    } catch {
-      /* ignore */
     }
 
     let sessionId: number | null = null;
-    try {
-      sessionId = await startSession({ mode, continent });
-    } catch {
-      // Play should still work even if persistence is unavailable.
+    if (!discovery) {
+      try {
+        sessionId = await startSession({ mode, continent });
+      } catch {
+        // Play should still work even if persistence is unavailable.
+      }
     }
+
     const pool = roundsPoolFor(continent, mode, statsMap);
     const now = Date.now();
 
@@ -258,21 +270,32 @@ export const useGame = create<GameState>((set, get) => ({
       sessionHistory: [],
       timedStartedAt: mode === "timed" ? now : null,
       countryStats: statsMap,
+      targetCountry: null,
+      wrongGuesses: [],
+      roundStartedAt: null,
+      roundEndedAt: null,
+      guesses: 0,
+      solved: false,
+      revealed: false,
+      lastRound: null,
       screen: "game",
     });
 
+    if (discovery) return;
     get().pickTarget();
   },
 
   pickTarget: () => {
     const { sessionPool, sessionHistory, mode, countryStats } = get();
+    if (mode === "discovery") return;
     if (!sessionPool.length) return;
+
     const recentIds = new Set(
-      sessionHistory.slice(-Math.min(6, Math.floor(sessionPool.length / 2)))
-        .map((h) => h.targetId),
+      sessionHistory.slice(-Math.min(6, Math.floor(sessionPool.length / 2))).map((h) => h.targetId),
     );
     const candidates = sessionPool.filter((c) => !recentIds.has(c.id));
     const list = candidates.length ? candidates : sessionPool;
+
     let target: CountryMeta;
     if (mode === "mastery") {
       target = weightedPick(list, (c) => {
@@ -298,8 +321,10 @@ export const useGame = create<GameState>((set, get) => ({
 
   guess: (countryId) => {
     const s = get();
+    if (s.mode === "discovery") return "ignored";
     if (!s.targetCountry || s.solved || s.revealed) return "ignored";
     if (s.wrongGuesses.includes(countryId)) return "repeat";
+
     const guesses = s.guesses + 1;
     if (countryId === s.targetCountry.id) {
       const endedAt = Date.now();
@@ -323,6 +348,7 @@ export const useGame = create<GameState>((set, get) => ({
         endedAt,
       };
       const streak = s.sessionStreak + 1;
+
       set({
         guesses,
         solved: true,
@@ -355,6 +381,7 @@ export const useGame = create<GameState>((set, get) => ({
       }
       return "correct";
     }
+
     // wrong
     set({
       guesses,
@@ -445,6 +472,8 @@ export const useGame = create<GameState>((set, get) => ({
 
   nextRound: () => {
     const s = get();
+    if (s.mode === "discovery") return;
+
     // End conditions
     if (s.mode === "classic" && s.sessionRoundsPlayed >= 10) {
       void s.endSessionNow();
@@ -471,6 +500,11 @@ export const useGame = create<GameState>((set, get) => ({
 
   endSessionNow: async () => {
     const s = get();
+    if (s.mode === "discovery") {
+      set({ screen: "mode-select" });
+      return;
+    }
+
     if (s.sessionId) {
       await endSession(s.sessionId, {
         roundsPlayed: s.sessionRoundsPlayed,

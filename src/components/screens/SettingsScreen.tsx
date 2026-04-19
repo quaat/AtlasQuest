@@ -83,7 +83,7 @@ export function SettingsScreen() {
           <SettingRow
             icon={<Tag size={16} className="text-amber-300" />}
             label="Label revealed countries on the map"
-            description="Show names on countries you've already clicked or that have been revealed. Never shows the target before you guess."
+            description="In gameplay, shows names only for countries you've already clicked or revealed. In Discovery mode, shows study labels across the map."
           >
             <Toggle checked={s.showLabels} onChange={s.setShowLabels} />
           </SettingRow>

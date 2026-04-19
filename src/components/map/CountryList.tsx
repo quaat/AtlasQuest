@@ -9,11 +9,13 @@ interface Props {
   wrongIds: string[];
   correctId: string | null;
   revealedId: string | null;
+  selectedId?: string | null;
   hoveredId?: string | null;
   onHover?: (id: string | null) => void;
   onSelect: (id: string) => void;
   onFocus?: (id: string) => void;
   disabled?: boolean;
+  mode?: "guess" | "discovery";
 }
 
 export function CountryList({
@@ -21,14 +23,17 @@ export function CountryList({
   wrongIds,
   correctId,
   revealedId,
+  selectedId,
   hoveredId,
   onHover,
   onSelect,
   onFocus,
   disabled,
+  mode = "guess",
 }: Props) {
   const [q, setQ] = useState("");
   const list = useMemo(() => COUNTRIES_BY_CONTINENT[continent], [continent]);
+  const discovery = mode === "discovery";
 
   const filtered = useMemo(() => {
     if (!q.trim()) return list;
@@ -45,7 +50,8 @@ export function CountryList({
     <div className="flex h-full min-h-0 min-w-0 flex-col">
       <div className="flex items-center justify-between px-3 pt-3 pb-2 gap-2">
         <div className="text-[11px] uppercase tracking-[0.15em] text-mist-400">
-          Countries <span className="text-mist-500">· {list.length}</span>
+          {discovery ? "Explore countries" : "Countries"}{" "}
+          <span className="text-mist-500">· {list.length}</span>
         </div>
       </div>
       <div className="relative px-3">
@@ -56,7 +62,7 @@ export function CountryList({
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search…"
+          placeholder={discovery ? "Search countries to study…" : "Search…"}
           className="w-full bg-white/5 border border-white/10 rounded-lg pl-8 pr-8 py-2 text-sm text-mist-50 placeholder:text-mist-500 focus:outline-none focus:ring-2 focus:ring-aurora-cyan/60"
         />
         {q && (
@@ -74,11 +80,13 @@ export function CountryList({
           const isWrong = wrongIds.includes(c.id);
           const isCorrect = correctId === c.id;
           const isRevealed = revealedId === c.id;
+          const isSelected = selectedId === c.id;
           const isHovered = hoveredId === c.id;
+
           return (
             <li key={c.id}>
               <button
-                disabled={disabled || isCorrect}
+                disabled={disabled || (!discovery && isCorrect)}
                 onClick={() => onSelect(c.id)}
                 onMouseEnter={() => onHover?.(c.id)}
                 onMouseLeave={() => onHover?.(null)}
@@ -90,12 +98,15 @@ export function CountryList({
                 className={cn(
                   "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm transition",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aurora-cyan/60",
-                  !isWrong && !isCorrect && !isRevealed && "hover:bg-white/5 text-mist-200",
-                  isHovered && !isWrong && !isCorrect && !isRevealed && "bg-white/5",
-                  isWrong && "bg-rose-500/15 text-rose-200 line-through",
-                  isCorrect && "bg-emerald-500/15 text-emerald-200",
-                  isRevealed && "bg-emerald-500/10 text-emerald-200",
-                  disabled && !isCorrect && !isRevealed && "opacity-90",
+                  discovery && "text-mist-100 hover:bg-white/5",
+                  discovery && isHovered && "bg-white/5",
+                  discovery && isSelected && "bg-cyan-500/15 text-cyan-100 ring-1 ring-cyan-400/40",
+                  !discovery && !isWrong && !isCorrect && !isRevealed && "hover:bg-white/5 text-mist-200",
+                  !discovery && isHovered && !isWrong && !isCorrect && !isRevealed && "bg-white/5",
+                  !discovery && isWrong && "bg-rose-500/15 text-rose-200 line-through",
+                  !discovery && isCorrect && "bg-emerald-500/15 text-emerald-200",
+                  !discovery && isRevealed && "bg-emerald-500/10 text-emerald-200",
+                  !discovery && disabled && !isCorrect && !isRevealed && "opacity-90",
                 )}
               >
                 <span className="text-base leading-none">{c.flag}</span>

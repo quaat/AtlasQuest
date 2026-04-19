@@ -94,7 +94,7 @@ export function HomeScreen() {
             <div className="mt-8 flex flex-wrap gap-4 text-sm text-mist-300">
               <HeroStat label="Continents" value="6" />
               <HeroStat label="Countries" value={COUNTRIES.length} />
-              <HeroStat label="Game modes" value="5" />
+              <HeroStat label="Game modes" value="6" />
               {stats && stats.rounds > 0 && (
                 <>
                   <HeroStat label="Rounds played" value={stats.rounds} />
@@ -108,7 +108,7 @@ export function HomeScreen() {
         </div>
 
         {/* Feature strip */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-14">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-14">
           <FeaturePill
             emoji="⚡"
             title="Fast sessions"
@@ -118,6 +118,11 @@ export function HomeScreen() {
             emoji="🎯"
             title="Mastery mode"
             body="Weighted reviews of the countries you often miss."
+          />
+          <FeaturePill
+            emoji="🧭"
+            title="Discovery mode"
+            body="Study freely with synced map/list exploration and country details."
           />
           <FeaturePill
             emoji="🧠"

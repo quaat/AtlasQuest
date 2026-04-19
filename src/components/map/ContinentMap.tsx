@@ -25,6 +25,7 @@ import { useSettings } from "@/store/settingsStore";
 export type MapCountryState =
   | "idle"
   | "hover"
+  | "selected"
   | "wrong"
   | "correct"
   | "hint"
@@ -38,10 +39,13 @@ interface Props {
   revealedId?: string | null;
   hintId?: string | null;
   hoveredId?: string | null;
+  selectedId?: string | null;
   onHover?: (id: string | null) => void;
   onSelect?: (id: string) => void;
   /** Optional: external focus request, e.g. from country list */
   focusId?: string | null;
+  interactionMode?: "gameplay" | "discovery";
+  labelMode?: "revealed" | "all";
   className?: string;
 }
 
@@ -56,9 +60,12 @@ export const ContinentMap = memo(function ContinentMap({
   revealedId,
   hintId,
   hoveredId: hoveredIdProp,
+  selectedId,
   onHover,
   onSelect,
   focusId,
+  interactionMode = "gameplay",
+  labelMode = "revealed",
   className,
 }: Props) {
   const { topology, loading, error } = useWorldTopology();
@@ -230,7 +237,11 @@ export const ContinentMap = memo(function ContinentMap({
           onHover?.(null);
         }}
         role="application"
-        aria-label={`${meta.name} map — click or tab through countries to guess`}
+        aria-label={
+          interactionMode === "discovery"
+            ? `${meta.name} map — explore countries and inspect details`
+            : `${meta.name} map — click or tab through countries to guess`
+        }
       >
         <defs>
           <radialGradient id="sea-glow" cx="50%" cy="50%" r="70%">
@@ -244,6 +255,10 @@ export const ContinentMap = memo(function ContinentMap({
           <linearGradient id="country-hover" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#3D4A6A" />
             <stop offset="100%" stopColor="#2A3350" />
+          </linearGradient>
+          <linearGradient id="country-selected" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#22D3EE" stopOpacity="0.4" />
+            <stop offset="100%" stopColor="#0EA5E9" stopOpacity="0.26" />
           </linearGradient>
           <linearGradient id="country-wrong" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#FB7185" />
@@ -278,9 +293,12 @@ export const ContinentMap = memo(function ContinentMap({
                 ? "wrong"
                 : hintId === c.id
                   ? "hint"
-                  : hoveredId === c.id
-                    ? "hover"
-                    : "idle";
+                  : selectedId === c.id
+                    ? "selected"
+                    : hoveredId === c.id
+                      ? "hover"
+                      : "idle";
+
           const fill =
             state === "correct"
               ? "url(#country-correct)"
@@ -290,22 +308,30 @@ export const ContinentMap = memo(function ContinentMap({
                   ? "url(#country-wrong)"
                   : state === "hint"
                     ? "url(#country-hint)"
-                    : state === "hover"
-                      ? "url(#country-hover)"
-                      : "url(#country-fill)";
+                    : state === "selected"
+                      ? "url(#country-selected)"
+                      : state === "hover"
+                        ? "url(#country-hover)"
+                        : "url(#country-fill)";
+
           const strokeColor =
             state === "correct"
               ? "#6EE7B7"
               : state === "wrong"
                 ? "#FCA5A5"
-                : state === "hover"
-                  ? "rgba(255,255,255,0.45)"
-                  : state === "hint"
-                    ? "rgba(255,255,255,0.5)"
-                    : "rgba(255,255,255,0.13)";
-          const strokeWidth = state === "idle" ? 0.7 : state === "hover" ? 1.1 : 1.5;
+                : state === "selected"
+                  ? "rgba(34,211,238,0.9)"
+                  : state === "hover"
+                    ? "rgba(255,255,255,0.45)"
+                    : state === "hint"
+                      ? "rgba(255,255,255,0.5)"
+                      : "rgba(255,255,255,0.13)";
+
+          const strokeWidth =
+            state === "idle" ? 0.7 : state === "hover" ? 1.1 : state === "selected" ? 1.3 : 1.5;
+
           const filter =
-            state === "correct" || state === "reveal" || state === "hint"
+            state === "correct" || state === "reveal" || state === "hint" || state === "selected"
               ? "url(#country-glow)"
               : undefined;
 
@@ -397,20 +423,42 @@ export const ContinentMap = memo(function ContinentMap({
           />
         )}
 
-        {/* Labels — only for countries the player has interacted with this round.
-            Naming them on the map before they're clicked would defeat the game.
-            Honors the "Show country names on map" setting as a master switch. */}
+        {/* Labels */}
         {showLabels && map.countries.map((c) => {
-          const revealed =
-            solvedId === c.id || revealedId === c.id || wrongIds.includes(c.id);
-          if (!revealed) return null;
+          let shouldRenderLabel = false;
+          if (labelMode === "all") {
+            const largeCountry = c.projectedArea >= map.width * map.height * 0.0032;
+            shouldRenderLabel =
+              largeCountry ||
+              zoomLevel >= 1.65 ||
+              selectedId === c.id ||
+              hoveredId === c.id;
+          } else {
+            shouldRenderLabel =
+              solvedId === c.id || revealedId === c.id || wrongIds.includes(c.id);
+          }
+
+          if (!shouldRenderLabel) return null;
+
           const [cx, cy] = c.centroid;
           if (!Number.isFinite(cx) || !Number.isFinite(cy)) return null;
-          const fontSize = Math.max(8, Math.min(14, 12 / zoomLevel * 1.2));
+
+          const fontSize =
+            labelMode === "all"
+              ? Math.max(7, Math.min(12, (11 / zoomLevel) * 1.12))
+              : Math.max(8, Math.min(14, (12 / zoomLevel) * 1.2));
+
           const color =
-            solvedId === c.id || revealedId === c.id
-              ? "rgba(209,250,229,0.95)"
-              : "rgba(254,205,211,0.9)";
+            labelMode === "all"
+              ? selectedId === c.id
+                ? "rgba(186,230,253,0.98)"
+                : hoveredId === c.id
+                  ? "rgba(240,249,255,0.96)"
+                  : "rgba(226,232,240,0.82)"
+              : solvedId === c.id || revealedId === c.id
+                ? "rgba(209,250,229,0.95)"
+                : "rgba(254,205,211,0.9)";
+
           return (
             <text
               key={`l-${c.id}`}
@@ -444,8 +492,7 @@ export const ContinentMap = memo(function ContinentMap({
         </MapControl>
       </div>
 
-      {/* Hover chip — shows a neutral indicator during active play and the
-          actual country name only for countries already interacted with. */}
+      {/* Hover chip */}
       <AnimatePresence>
         {hoveredId && (() => {
           const hc = map.countries.find((c) => c.id === hoveredId);
@@ -454,6 +501,9 @@ export const ContinentMap = memo(function ContinentMap({
             solvedId === hc.id ||
             revealedId === hc.id ||
             wrongIds.includes(hc.id);
+          const showCountryName =
+            interactionMode === "discovery" || alreadyRevealed;
+
           return (
             <motion.div
               initial={{ opacity: 0, y: 6 }}
@@ -463,7 +513,7 @@ export const ContinentMap = memo(function ContinentMap({
             >
               <Crosshair size={12} className="text-cyan-300" />
               <span className="text-mist-100">
-                {alreadyRevealed ? (
+                {showCountryName ? (
                   <>
                     {hc.meta.flag} {hc.name}
                   </>
