@@ -1,10 +1,11 @@
-import { ArrowLeft, Volume2, Vibrate, Tag, Lightbulb, Zap, Database, Map } from "lucide-react";
+import { ArrowLeft, Volume2, Vibrate, Tag, Lightbulb, Zap, Database, Map, Palette } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardTitle } from "@/components/ui/Card";
 import { Toggle } from "@/components/ui/Toggle";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useGame } from "@/store/gameStore";
 import { useSettings } from "@/store/settingsStore";
+import type { MapColorTheme } from "@/store/settingsStore";
 import { resetDb } from "@/lib/db";
 import { useState } from "react";
 import type { MapProjectionMode } from "@/data/continents";
@@ -24,6 +25,29 @@ const projectionOptions: { value: MapProjectionMode; label: string; hint: string
     value: "conicConformal",
     label: "Conic",
     hint: "Force Conic Conformal projection across all continents.",
+  },
+];
+
+const mapColorThemeOptions: { value: MapColorTheme; label: string; hint: string }[] = [
+  {
+    value: "aurora",
+    label: "Aurora",
+    hint: "Neon blue oceans with cool slate land colors.",
+  },
+  {
+    value: "atlas",
+    label: "Atlas",
+    hint: "Classic deep-ocean blues and desaturated navy land.",
+  },
+  {
+    value: "emerald",
+    label: "Emerald",
+    hint: "Teal-green waters with forest-toned map fills.",
+  },
+  {
+    value: "sand",
+    label: "Sand",
+    hint: "Warm coastal tones and muted earth map fills.",
   },
 ];
 
@@ -60,6 +84,26 @@ export function SettingsScreen() {
                   value={s.mapProjectionMode}
                   onChange={s.setMapProjectionMode}
                   options={projectionOptions}
+                  size="sm"
+                  className="mt-2 max-w-full"
+                />
+              </div>
+            </div>
+          </div>
+          <div className="py-3">
+            <div className="flex items-start gap-3">
+              <div className="h-8 w-8 rounded-lg bg-white/5 border border-white/10 grid place-items-center shrink-0">
+                <Palette size={16} className="text-cyan-300" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-mist-50">Map and sea colors</div>
+                <div className="text-xs text-mist-400 mt-0.5">
+                  Changes ocean and base country tones used by all continent maps.
+                </div>
+                <SegmentedControl
+                  value={s.mapColorTheme}
+                  onChange={s.setMapColorTheme}
+                  options={mapColorThemeOptions}
                   size="sm"
                   className="mt-2 max-w-full"
                 />

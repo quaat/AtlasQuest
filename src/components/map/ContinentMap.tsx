@@ -21,6 +21,7 @@ import { getContinent, resolveContinentProjection } from "@/data/continents";
 import { useWorldTopology } from "./useWorldTopology";
 import { cn } from "@/lib/utils";
 import { useSettings } from "@/store/settingsStore";
+import type { MapColorTheme } from "@/store/settingsStore";
 
 export type MapCountryState =
   | "idle"
@@ -52,6 +53,65 @@ interface Props {
 const BASE_W = 1200;
 const BASE_H = 720;
 
+type MapThemePalette = {
+  seaBaseTop: string;
+  seaBaseBottom: string;
+  seaGlowInner: string;
+  seaGlowOuter: string;
+  countryFillTop: string;
+  countryFillBottom: string;
+  countryHoverTop: string;
+  countryHoverBottom: string;
+  countryIdleStroke: string;
+};
+
+const MAP_THEME_PALETTES: Record<MapColorTheme, MapThemePalette> = {
+  aurora: {
+    seaBaseTop: "#0A152A",
+    seaBaseBottom: "#03060F",
+    seaGlowInner: "rgba(129,140,248,0.24)",
+    seaGlowOuter: "rgba(5,6,11,0)",
+    countryFillTop: "#2F374B",
+    countryFillBottom: "#1C2235",
+    countryHoverTop: "#3D4A6A",
+    countryHoverBottom: "#2A3350",
+    countryIdleStroke: "rgba(255,255,255,0.13)",
+  },
+  atlas: {
+    seaBaseTop: "#10263E",
+    seaBaseBottom: "#07111F",
+    seaGlowInner: "rgba(56,189,248,0.22)",
+    seaGlowOuter: "rgba(7,17,31,0)",
+    countryFillTop: "#3B4A63",
+    countryFillBottom: "#25324A",
+    countryHoverTop: "#4A5E7D",
+    countryHoverBottom: "#324564",
+    countryIdleStroke: "rgba(191,219,254,0.24)",
+  },
+  emerald: {
+    seaBaseTop: "#0B2E2F",
+    seaBaseBottom: "#041615",
+    seaGlowInner: "rgba(45,212,191,0.22)",
+    seaGlowOuter: "rgba(4,22,21,0)",
+    countryFillTop: "#2E443D",
+    countryFillBottom: "#1B2F29",
+    countryHoverTop: "#3F5B52",
+    countryHoverBottom: "#2A433B",
+    countryIdleStroke: "rgba(187,247,208,0.2)",
+  },
+  sand: {
+    seaBaseTop: "#243447",
+    seaBaseBottom: "#121C2B",
+    seaGlowInner: "rgba(251,191,36,0.16)",
+    seaGlowOuter: "rgba(18,28,43,0)",
+    countryFillTop: "#4D463B",
+    countryFillBottom: "#342E25",
+    countryHoverTop: "#645B4C",
+    countryHoverBottom: "#4A4336",
+    countryIdleStroke: "rgba(253,230,138,0.2)",
+  },
+};
+
 export const ContinentMap = memo(function ContinentMap({
   continent,
   targetId,
@@ -69,10 +129,11 @@ export const ContinentMap = memo(function ContinentMap({
   className,
 }: Props) {
   const { topology, loading, error } = useWorldTopology();
-  const { showLabels, mapProjectionMode } = useSettings();
+  const { showLabels, mapProjectionMode, mapColorTheme } = useSettings();
   const svgRef = useRef<SVGSVGElement>(null);
   const [internalHover, setInternalHover] = useState<string | null>(null);
   const hoveredId = hoveredIdProp ?? internalHover;
+  const palette = MAP_THEME_PALETTES[mapColorTheme];
 
   const meta = useMemo(() => getContinent(continent), [continent]);
   const projectionSpec = useMemo(
@@ -244,17 +305,21 @@ export const ContinentMap = memo(function ContinentMap({
         }
       >
         <defs>
+          <linearGradient id="sea-base" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={palette.seaBaseTop} />
+            <stop offset="100%" stopColor={palette.seaBaseBottom} />
+          </linearGradient>
           <radialGradient id="sea-glow" cx="50%" cy="50%" r="70%">
-            <stop offset="0%" stopColor="rgba(129,140,248,0.12)" />
-            <stop offset="100%" stopColor="rgba(5,6,11,0)" />
+            <stop offset="0%" stopColor={palette.seaGlowInner} />
+            <stop offset="100%" stopColor={palette.seaGlowOuter} />
           </radialGradient>
           <linearGradient id="country-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#2F374B" />
-            <stop offset="100%" stopColor="#1C2235" />
+            <stop offset="0%" stopColor={palette.countryFillTop} />
+            <stop offset="100%" stopColor={palette.countryFillBottom} />
           </linearGradient>
           <linearGradient id="country-hover" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#3D4A6A" />
-            <stop offset="100%" stopColor="#2A3350" />
+            <stop offset="0%" stopColor={palette.countryHoverTop} />
+            <stop offset="100%" stopColor={palette.countryHoverBottom} />
           </linearGradient>
           <linearGradient id="country-selected" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#22D3EE" stopOpacity="0.4" />
@@ -281,6 +346,7 @@ export const ContinentMap = memo(function ContinentMap({
           </filter>
         </defs>
 
+        <rect x={vp.x} y={vp.y} width={vp.w} height={vp.h} fill="url(#sea-base)" />
         <rect x={vp.x} y={vp.y} width={vp.w} height={vp.h} fill="url(#sea-glow)" />
 
         {/* Countries */}
@@ -325,7 +391,7 @@ export const ContinentMap = memo(function ContinentMap({
                     ? "rgba(255,255,255,0.45)"
                     : state === "hint"
                       ? "rgba(255,255,255,0.5)"
-                      : "rgba(255,255,255,0.13)";
+                      : palette.countryIdleStroke;
 
           const strokeWidth =
             state === "idle" ? 0.7 : state === "hover" ? 1.1 : state === "selected" ? 1.3 : 1.5;
